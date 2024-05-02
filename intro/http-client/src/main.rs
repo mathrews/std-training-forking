@@ -7,7 +7,7 @@ use embedded_svc::{
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
     hal::prelude::Peripherals,
-    http::client::{Configuration, EspHttpConnection},
+    http::client::{Configuration, Connection, EspHttpConnection},
 };
 use wifi::wifi;
 
@@ -44,20 +44,29 @@ fn main() -> Result<()> {
 
 fn get(url: impl AsRef<str>) -> Result<()> {
     // 1. Create a new EspHttpConnection with default Configuration. (Check documentation)
-
+    let httpconnection = EspHttpConnection::new(&Configuration {
+        ..Default::default()
+    })?;
     // 2. Get a client using the embedded_svc Client::wrap method. (Check documentation)
-
+    let mut httpclient = Client::wrap(httpconnection);
     // 3. Open a GET request to `url`
     let headers = [("accept", "text/plain")];
 
+    let request = httpclient.request(Method::Get, url.as_ref(), &headers)?;
+
     // 4. Submit the request and check the status code of the response.
-    // let response = request...;
-    // let status = ...;
-    // println!("Response code: {}\n", status);
-    // match status {
-    // Successful http status codes are in the 200..=299 range.
+    let response = request.submit().unwrap();
+    let status = response.status();
+
+    println!("Response code: {}", status);
 
     // 5. If the status is OK, read response data chunk by chunk into a buffer and print it until done.
+    match status {
+        200..=299 => {
+
+        }
+        _ => bail!("Unexpected response code: {}", status),
+    }   
 
     // 6. Try converting the bytes into a Rust (UTF-8) string and print it.
     // }
