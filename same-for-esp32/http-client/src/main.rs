@@ -18,7 +18,6 @@ pub struct Config {
     #[default("")]
     wifi_psk: &'static str,
 }
-
 fn main() -> Result<()> {
     esp_idf_svc::sys::link_patches();
     esp_idf_svc::log::EspLogger::initialize_default();
@@ -81,7 +80,7 @@ fn get(url: impl AsRef<str>) -> Result<()> {
                     let size_plus_offset = size + offset;
                     match str::from_utf8(&buf[..size_plus_offset]) {
                         Ok(text) => {
-                            println!("{}", text);
+                            println!("{}.", text);
                             offset = 0;
                         }
                         Err(error) => {
@@ -97,11 +96,17 @@ fn get(url: impl AsRef<str>) -> Result<()> {
             }
             println!("Total: {} bytes", total);
         }
+        300..=399 => {
+            println!("Redirection Status Request.");
+        }
+        400..=499 => {
+            println!("Bad Requests Status.");
+        }
+        500..=599 => {
+            println!("Server Trouble Status");
+        }
         _ => bail!("Unexpected response code: {}", status),
     }
-
-    // 6. Try converting the bytes into a Rust (UTF-8) string and print it.
-    // }
 
     Ok(())
 }
