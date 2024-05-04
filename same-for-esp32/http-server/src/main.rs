@@ -50,6 +50,7 @@ fn main() -> Result<()> {
     let config = I2cConfig::new().baudrate(100.kHz().into());
     let i2c = I2cDriver::new(i2c, sda, scl, &config)?;
     let temp_sensor_main = Arc::new(Mutex::new(shtc3(i2c)));
+    #[allow(unused_mut)]
     let mut temp_sensor = temp_sensor_main.clone();
     temp_sensor
         .lock()
@@ -66,8 +67,14 @@ fn main() -> Result<()> {
         response.write_all(html.as_bytes())?;
         Ok(())
     })?;
-
-    // make requests for I2C with temp sensor:
+    
+    server.fn_handler("/temperature", Method::Get, |request| {
+        let val_temp = temp_sensor.lock().unwrap().get_measurement_result().unwrap().temperature.as_degrees_celsius();
+        let temperature = temperature(val_temp);
+        let mut response = request.into_ok_response()?;
+        response.write_all(temperature.as_bytes())?;
+        Ok(())
+    })?;
 
     // This is not true until you actually create one
     println!("Server awaiting connection");
