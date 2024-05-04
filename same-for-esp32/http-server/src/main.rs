@@ -76,6 +76,13 @@ fn main() -> Result<()> {
         Ok(())
     })?;
 
+    server.fn_handler("*", Method::Get, |request| {
+        let message = String::from("This URL does not exist");
+        let mut response = request.into_ok_response()?;
+        response.write_all(message.as_bytes())?;
+        Ok(())
+    })?;
+
     // This is not true until you actually create one
     println!("Server awaiting connection");
 
