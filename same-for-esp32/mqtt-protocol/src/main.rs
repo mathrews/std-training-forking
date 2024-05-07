@@ -82,13 +82,17 @@ fn main() -> Result<()> {
     // 1. Create a client with default configuration and empty handler
     // let mut client = EspMqttClient::new( ... )?;
     let mut client =
-        EspMqttClient::new(&broker_url, &mqtt_config, move |_message_event| {}).unwrap();
+    EspMqttClient::new(&broker_url, &mqtt_config, move |message_event| match message_event{
+        Ok(Received(msg)) => process_message(msg, &mut led),
+         _ => warn!("Received from MQTT: {:?}", message_event),
+        },
+    )?;
     // 2. publish an empty hello message
     let payload: &[u8] = &[];
     client.publish(&hello_topic(UUID), QoS::AtLeastOnce, false, payload)?;
 
-    // client.subscribe(&mqtt_messages::color_topic(UUID), QoS::AtLeastOnce)?;
-
+    client.subscribe(&mqtt_messages::color_topic(UUID), QoS::AtLeastOnce)?;
+   
     loop {
         sleep(Duration::from_secs(1));
         let temp = temp_sensor
@@ -105,5 +109,21 @@ fn main() -> Result<()> {
             false,
             payload,
         )?;
+    }
+}
+
+fn process_message(message: &EspMqttMessage, led: &mut WS2812RMT) {
+    match message.details() {
+        Complete => {
+            info!("{:?}", message);
+            let message_data: &[u8] = message.data();
+            if let Ok(ColorData::BoardLed(color)) = ColorData::try_from(message_data) {
+                info!("{}", color);
+                if let Err(e) = led.set_pixel(color) {
+                    error!("Could not set board LED: {:?}", e)
+                };
+            }
+        }
+        _ => error!("Could not set board LED"),
     }
 }
